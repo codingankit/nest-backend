@@ -1,0 +1,93 @@
+generator client {
+  provider     = "prisma-client-js"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHERS
+
+  @@map("gender")
+}
+
+enum Role {
+  USER
+  ADMIN
+
+  @@map("role")
+}
+
+enum TwoFAMethod {
+  TOTP
+  EMAIL
+
+  @@map("two_fa_method")
+}
+
+model User {
+  id    String @id @default(uuid()) @db.Uuid
+  name  String @db.VarChar(100)
+  email String @unique @db.VarChar(255)
+  hash  String @db.VarChar(255)
+
+  gender     Gender
+  profilePic String?   @map("profile_pic") @db.VarChar(500)
+  role       Role      @default(USER)
+  comments   Comment[]
+  posts      Post[]
+
+  hashedRefreshToken String? @map("refresh_token") @db.VarChar(512)
+
+  is2FAEnabled Boolean      @default(false) @map("is_2fa_enabled")
+  twoFAMethod  TwoFAMethod? @map("two_fa_method")
+  totpSecret   String?      @map("totp_secret") @db.VarChar(128)
+
+  isVerified Boolean @default(false) @map("is_verified")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([role])
+  @@map("users")
+}
+
+model Post {
+  id        String    @id @default(uuid()) @db.Uuid
+  slug      String    @unique @db.VarChar(255)
+  thumbnail String?   @db.VarChar(1000)
+  title     String    @db.VarChar(255)
+  content   String    @db.Text
+  comments  Comment[]
+
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String @map("author_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([title])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model Comment {
+  id   String @id @default(uuid()) @db.Uuid
+  text String @db.VarChar(1000)
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @map("user_id") @db.Uuid
+
+  post   Post   @relation(fields: [postId], references: [id])
+  postId String @map("post_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([postId])
+  @@map("comments")
+}
